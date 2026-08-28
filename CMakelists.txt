@@ -68,7 +68,7 @@ add_executable(main ${SOURCES}
 
                "src/tools/timer.h"
                "src/tools/timer.cpp"  
-               "src/tools/camera.h" "src/tools/camera.cpp" )
+               "src/tools/camera.h" "src/tools/camera.cpp"  "src/vulkan/vk_vertex_buffer.h" "src/vulkan/vk_vertex_buffer.cpp")
 
 compile_vk_shader("basic_vk.vert" main)
 compile_vk_shader("basic_vk.frag" main)
