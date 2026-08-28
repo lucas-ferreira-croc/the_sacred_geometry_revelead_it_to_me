@@ -63,6 +63,10 @@ bool VkRenderer::init(unsigned int width, unsigned int height)
 		return false;
 	}
 
+	if (!createVBO()) {
+		return false;
+	}
+
 	if (!createRenderPass()) {
 		return false;
 	}
@@ -93,6 +97,9 @@ bool VkRenderer::init(unsigned int width, unsigned int height)
 
 	Logger::log(1, "%s: Vulkan renderer initialized to %ix%i\n", __FUNCTION__, width, height);
 	
+	m_Model = std::make_unique<VkModel>();
+	m_AllMeshes = std::make_unique<VkMesh>();
+
 	m_FrameTimer.start();
 	return true;
 }
@@ -110,6 +117,13 @@ bool VkRenderer::draw() {
 	double tickTime = glfwGetTime();
 	m_RenderData.rendererTickDiff = tickTime - lastTickTime;
 
+	m_RenderData.rendererFrameTime = m_FrameTimer.stop();
+	m_FrameTimer.start();
+
+	handleMovementKeys();
+
+	m_AllMeshes->vertices.clear();
+
 	if (vkWaitForFences(m_RenderData.rendererVkbDevice.device, 1, &m_RenderData.rendererRenderFence, VK_TRUE, UINT64_MAX) != VK_SUCCESS) {
 		Logger::log(1, "%s error: waiting for fence failed\n", __FUNCTION__);
 		return false;
@@ -119,11 +133,6 @@ bool VkRenderer::draw() {
 		Logger::log(1, "%s error: waiting for present fence failed\n", __FUNCTION__);
 		return false;
 	}
-
-	m_RenderData.rendererFrameTime = m_FrameTimer.stop();
-	m_FrameTimer.start();
-
-	handleMovementKeys();
 
 	static float prevFrameStartTime = 0.0f;
 	float frameStartTime = glfwGetTime();
@@ -171,7 +180,7 @@ bool VkRenderer::draw() {
 	}
 
 	VkClearValue colorClearValue;
-	colorClearValue.color = { { 0.1f, 0.1f, 0.1f, 1.0f } };
+	colorClearValue.color = { { 0.25f, 0.25f, 0.25f, 1.0f } };
 
 	VkClearValue depthValue;
 	depthValue.depthStencil.depth = 1.0f;
@@ -202,6 +211,10 @@ bool VkRenderer::draw() {
 	scissor.offset = { 0, 0 };
 	scissor.extent = m_RenderData.rendererVkbSwapchain.extent;
 
+	auto& vertexData = m_Model->getVertexData();
+	m_RenderData.rendererTringleCount = vertexData.vertices.size() / 3;
+	m_AllMeshes->vertices.insert(m_AllMeshes->vertices.end(), vertexData.vertices.begin(), vertexData.vertices.end());
+
 	m_MatrixGenerateTimer.start();
 	glm::vec3 cameraPosition = glm::vec3(0.4f, 0.3f, 1.0f);
 	glm::vec3 cameraLookAtPosition = glm::vec3(0.0f, 0.0f, 0.0f);
@@ -221,6 +234,7 @@ bool VkRenderer::draw() {
 	}
 	m_Matrices.viewMatrix = m_Camera.getViewMatrix(m_RenderData) * model;
 	m_RenderData.matrixGenerateTime = m_MatrixGenerateTimer.stop();
+	VkVertexBuffer::uploadData(m_RenderData, *m_AllMeshes);
 
 	vkCmdBeginRenderPass(m_RenderData.rendererCommandBuffer, &rpInfo, VK_SUBPASS_CONTENTS_INLINE);
 
@@ -234,7 +248,7 @@ bool VkRenderer::draw() {
 	vkCmdSetScissor(m_RenderData.rendererCommandBuffer, 0, 1, &scissor);
 
 	VkDeviceSize offset = 0;
-	vkCmdBindVertexBuffers(m_RenderData.rendererCommandBuffer, 0, 1, &m_VertexBuffer, &offset);
+	vkCmdBindVertexBuffers(m_RenderData.rendererCommandBuffer, 0, 1, &m_RenderData.rendererVertexBuffer, &offset);
 	vkCmdBindDescriptorSets(m_RenderData.rendererCommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_RenderData.rendererPipelineLayout, 0, 1, & m_RenderData.rendererTextureDescriptorSet, 0, nullptr);
 	vkCmdBindDescriptorSets(m_RenderData.rendererCommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_RenderData.rendererPipelineLayout, 1, 1, &m_RenderData.rendererUboDescriptorSet, 0, nullptr);
 
@@ -315,55 +329,29 @@ bool VkRenderer::draw() {
 	return true;
 }
 
-bool VkRenderer::uploadData(VkMesh vertexData) {
-	VkBufferCreateInfo bufferInfo{};
-	bufferInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
-	bufferInfo.size = vertexData.vertices.size() * sizeof(VkVertex);
-	bufferInfo.usage = VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
-
-	VmaAllocationCreateInfo vmaAllocInfo{};
-	vmaAllocInfo.usage = VMA_MEMORY_USAGE_CPU_TO_GPU;
-
-	if (vmaCreateBuffer(m_RenderData.rendererAllocator, &bufferInfo, &vmaAllocInfo, &m_VertexBuffer, &m_VertexBufferAlloc, nullptr) != VK_SUCCESS) {
-		Logger::log(1, "%s error: could not allocate vertex buffer via VMA\n", __FUNCTION__);
-		return false;
-	}
-
-	void* data;
-	vmaMapMemory(m_RenderData.rendererAllocator, m_VertexBufferAlloc, &data);
-	std::memcpy(data, vertexData.vertices.data(), vertexData.vertices.size() * sizeof(VkVertex));
-	vmaUnmapMemory(m_RenderData.rendererAllocator, m_VertexBufferAlloc);
-
-	m_RenderData.rendererTringleCount = vertexData.vertices.size() / 3;
-
-	return true;
-}
-
 void VkRenderer::cleanup() 
 {
-
-
 	vkDeviceWaitIdle(m_RenderData.rendererVkbDevice.device);
 
 	m_UserInterface.cleanup(m_RenderData);
 	Logger::log(1, "%s: Vulkan user inteface destroyed\n", __FUNCTION__);
 
 	VkRendererTexture::cleanup(m_RenderData);
-	vmaDestroyBuffer(m_RenderData.rendererAllocator, m_VertexBuffer, m_VertexBufferAlloc);
-
 	SyncObjects::cleanup(m_RenderData);
 	CommandBuffer::cleanup(m_RenderData, m_RenderData.rendererCommandBuffer);
 	CommandPool::cleanup(m_RenderData);
 	VkRendererFramebuffer::cleanup(m_RenderData);
 	VkRendererPipeline::cleanup(m_RenderData, m_RenderData.rendererPipeline);
 	VkRendererPipeline::cleanup(m_RenderData, m_RenderData.rendererChangedPipeline);
+	VkRendererPipelineLayout::cleanup(m_RenderData, m_RenderData.rendererPipelineLayout);
 	VkRendererRenderPass::cleanup(m_RenderData);
 	VkRendererUniformBuffer::cleanup(m_RenderData);
-	VkRendererPipelineLayout::cleanup(m_RenderData, m_RenderData.rendererPipelineLayout);
+	VkVertexBuffer::cleanup(m_RenderData);
+
 	vkDestroyImageView(m_RenderData.rendererVkbDevice.device, m_RenderData.rendererDepthImageView, nullptr);
 	vmaDestroyImage(m_RenderData.rendererAllocator, m_RenderData.rendererDepthImage, m_RenderData.rendererDepthImageAlloc);
 	vmaDestroyAllocator(m_RenderData.rendererAllocator);
-
+	
 	m_RenderData.rendererVkbSwapchain.destroy_image_views(m_RenderData.rendererSwapchainImageViews);
 	vkb::destroy_swapchain(m_RenderData.rendererVkbSwapchain);
 
@@ -661,6 +649,16 @@ bool VkRenderer::loadTexture()
 		return false;
 	}
 
+	return true;
+}
+
+bool VkRenderer::createVBO()
+{
+	if (!VkVertexBuffer::init(m_RenderData))
+	{
+		Logger::log(1, "%s error: could not create vertex buffer object\n", __FUNCTION__);
+		return false;
+	}
 	return true;
 }
 

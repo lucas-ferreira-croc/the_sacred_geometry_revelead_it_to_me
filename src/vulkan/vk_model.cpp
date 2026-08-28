@@ -141,5 +141,9 @@ void VkModel::init()
 
 VkMesh VkModel::getVertexData() 
 {
+	if(m_VertexData.vertices.size() == 0)
+	{
+		init();
+	}
 	return m_VertexData;
 }

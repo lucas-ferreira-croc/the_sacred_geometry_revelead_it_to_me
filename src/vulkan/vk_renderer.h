@@ -21,6 +21,8 @@
 #include "vk_uniform_buffer.h"
 #include "vk_pipeline_layout.h"
 #include "vk_user_interface.h"
+#include "vk_model.h"
+#include "vk_vertex_buffer.h"
 
 #include "tools/timer.h"
 
@@ -48,8 +50,6 @@ private:
 	VkSurfaceKHR m_Surface = VK_NULL_HANDLE;
 	VkDeviceSize m_MinUniformBufferOssetAligment = 0;
 	VkUploadMatrices m_Matrices;
-	VkBuffer m_VertexBuffer;
-	VmaAllocation m_VertexBufferAlloc;
 	VKUserInterface m_UserInterface;
 
 	Timer m_UIGeneratorTimer{};
@@ -68,6 +68,8 @@ private:
 	bool deviceInit();
 	bool getQueue();
 	bool createDepthBuffer();
+	bool createVBO();
+	bool createUBO();
 	bool createSwapchain();
 	bool createRenderPass();
 	bool createPipelineLayout();
@@ -77,10 +79,11 @@ private:
 	bool createCommandBuffer();
 	bool createSyncObjects();
 	bool loadTexture();
-	bool createUBO();
 	bool initVma();
-
 	bool recreateSwapChain();
+
+	std::unique_ptr<VkModel> m_Model = nullptr;
+	std::unique_ptr<VkMesh> m_AllMeshes = nullptr;
 };
 
 #endif

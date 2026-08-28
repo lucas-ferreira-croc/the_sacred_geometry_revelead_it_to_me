@@ -100,6 +100,12 @@ struct VkRenderData
 	VkDescriptorSet rendererUboDescriptorSet = VK_NULL_HANDLE;
 
 	VkDescriptorPool rendererImguiDescriptorPool = VK_NULL_HANDLE;
+
+	unsigned int rendererVertexBufferSize = 2048;
+	VkBuffer rendererVertexBuffer = VK_NULL_HANDLE;
+	VmaAllocation rendererVertexBufferAllocation = nullptr;
+	VkBuffer rendererVertexBufferStagingBuffer = VK_NULL_HANDLE;
+	VmaAllocation rendererVertexBufferStagingBufferAllocation = VK_NULL_HANDLE;
 };
 
 #endif

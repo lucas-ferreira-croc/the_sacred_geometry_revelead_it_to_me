@@ -5,10 +5,6 @@
 
 bool Window::init(unsigned int width, unsigned int height, std::string title)
 {
-	m_ApplicationName = title;
-	m_Width = width;
-	m_Height = height;
-
 	if(!glfwInit())
 	{
 		Logger::log(1, "%s: glfwUnit() error\n", __FUNCTION__);
@@ -66,9 +62,6 @@ bool Window::init(unsigned int width, unsigned int height, std::string title)
 		});
 
 
-	m_VkModel = std::make_unique<VkModel>();
-	m_VkModel->init();
-
 	Logger::log(1, "%s: mockup model data loaded", __FUNCTION__);
 	Logger::log(1, "%s: Window with vulkan successfully initialized", __FUNCTION__);
 	return true;
@@ -80,7 +73,6 @@ bool Window::init(unsigned int width, unsigned int height, std::string title)
 
 void Window::mainLoop()
 {
-	m_VkRenderer->uploadData(m_VkModel->getVertexData());
 	while (!glfwWindowShouldClose(m_Window))
 	{
 		if(!m_VkRenderer->draw())
@@ -93,6 +85,7 @@ void Window::mainLoop()
 
 void Window::cleanup()
 {
+	m_VkRenderer->cleanup();
 	Logger::log(1, "%s: Terminating window\n", __FUNCTION__);
 	
 	glfwDestroyWindow(m_Window);

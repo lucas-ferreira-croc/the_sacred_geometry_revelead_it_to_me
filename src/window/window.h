@@ -7,7 +7,6 @@
 #include <GLFW/glfw3.h>
 
 #include "vk_renderer.h"
-#include "vk_model.h"
 
 class Window
 {
@@ -22,17 +21,7 @@ private:
 	void handleKeyEvents(int key, int scancode, int action, int mods);
 private:
 	GLFWwindow* m_Window = nullptr;
-	std::string m_ApplicationName;
-	bool m_Vulkan;
-
-	int m_Width;
-	int m_Height;
-
-	VkInstance m_Instance{};
-	VkSurfaceKHR m_Surface{};
-
 	std::unique_ptr<VkRenderer> m_VkRenderer;
-	std::unique_ptr<VkModel> m_VkModel;
 };
 
 
