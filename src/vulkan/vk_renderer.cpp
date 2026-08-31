@@ -234,7 +234,7 @@ bool VkRenderer::draw() {
 	}
 	m_Matrices.viewMatrix = m_Camera.getViewMatrix(m_RenderData) * model;
 	m_RenderData.matrixGenerateTime = m_MatrixGenerateTimer.stop();
-	VkVertexBuffer::uploadData(m_RenderData, *m_AllMeshes);
+	VkVertexBuffer::uploadData(m_RenderData, m_RenderData.rendererVertexBufferData, *m_AllMeshes);
 
 	vkCmdBeginRenderPass(m_RenderData.rendererCommandBuffer, &rpInfo, VK_SUBPASS_CONTENTS_INLINE);
 
@@ -336,7 +336,7 @@ void VkRenderer::cleanup()
 	m_UserInterface.cleanup(m_RenderData);
 	Logger::log(1, "%s: Vulkan user inteface destroyed\n", __FUNCTION__);
 
-	VkRendererTexture::cleanup(m_RenderData);
+	VkRendererTexture::cleanup(m_RenderData, m_RenderData.rendererModelTexture);
 	SyncObjects::cleanup(m_RenderData);
 	CommandBuffer::cleanup(m_RenderData, m_RenderData.rendererCommandBuffer);
 	CommandPool::cleanup(m_RenderData);
@@ -346,7 +346,7 @@ void VkRenderer::cleanup()
 	VkRendererPipelineLayout::cleanup(m_RenderData, m_RenderData.rendererPipelineLayout);
 	VkRendererRenderPass::cleanup(m_RenderData);
 	VkRendererUniformBuffer::cleanup(m_RenderData);
-	VkVertexBuffer::cleanup(m_RenderData);
+	VkVertexBuffer::cleanup(m_RenderData, m_RenderData.rendererVertexBufferData);
 
 	vkDestroyImageView(m_RenderData.rendererVkbDevice.device, m_RenderData.rendererDepthImageView, nullptr);
 	vmaDestroyImage(m_RenderData.rendererAllocator, m_RenderData.rendererDepthImage, m_RenderData.rendererDepthImageAlloc);
@@ -644,7 +644,7 @@ bool VkRenderer::createSyncObjects()
 bool VkRenderer::loadTexture()
 {
 	std::string textureFileName = "C:\\dev\\game_animation\\textures\\crate.png";
-	if (!VkRendererTexture::loadTexture(m_RenderData, textureFileName)) {
+	if (!VkRendererTexture::loadTexture(m_RenderData, m_RenderData.rendererModelTexture, textureFileName)) {
 		Logger::log(1, "%s error: could not load texture\n", __FUNCTION__);
 		return false;
 	}
@@ -654,7 +654,7 @@ bool VkRenderer::loadTexture()
 
 bool VkRenderer::createVBO()
 {
-	if (!VkVertexBuffer::init(m_RenderData))
+	if (!VkVertexBuffer::init(m_RenderData, m_RenderData.rendererVertexBufferData, 2048))
 	{
 		Logger::log(1, "%s error: could not create vertex buffer object\n", __FUNCTION__);
 		return false;

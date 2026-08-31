@@ -19,6 +19,7 @@ file(GLOB SOURCES
     include/imgui/*.cpp
     include/VkBootstrap/*.cpp
     include/glad/src/glad.c
+    include/tinygltf/*.cc
 )
 
 find_program(GLSLC_EXECUTABLE glslc REQUIRED)
@@ -53,8 +54,8 @@ add_executable(main ${SOURCES}
                "src/vulkan/sync_objects.h"
                "src/vulkan/vk_framebuffer.h"
                "src/vulkan/vk_framebuffer.cpp"
-               "src/vulkan/vk_model.h"
-               "src/vulkan/vk_model.cpp"
+               "src/model/vk_model.h"
+               "src/model/vk_model.cpp"
                "src/vulkan/vk_shader.h"
                "src/vulkan/vk_shader.cpp"
                "src/vulkan/vk_texture.h"
@@ -67,16 +68,26 @@ add_executable(main ${SOURCES}
                "src/vulkan/vk_user_interaface.cpp"
                "src/vulkan/vk_vertex_buffer.h" 
                "src/vulkan/vk_vertex_buffer.cpp"
+               "src/model/gltf_model.h" 
+               "src/model/gltf_model.cpp" 
+               "src/vulkan/vk_index_buffer.h"
+               "src/vulkan/vk_index_buffer.cpp" 
+               "src/vulkan/vk_gltf_pipeline.h" 
+               "src/vulkan/vk_gltf_pipeline.cpp"
 
                # miscelaneous
                "src/tools/timer.h"
                "src/tools/timer.cpp"  
-               "src/tools/camera.h" "src/tools/camera.cpp" )
+               "src/tools/camera.h" 
+               "src/tools/camera.cpp"  
+               )
 
 compile_vk_shader("basic_vk.vert" main)
 compile_vk_shader("basic_vk.frag" main)
 compile_vk_shader("changed_vk.vert" main)
 compile_vk_shader("changed_vk.frag" main)
+compile_vk_shader("gltf.vert" main)
+compile_vk_shader("gltf.frag" main)
 
 find_package(glfw3 3.3 REQUIRED)
 
@@ -90,7 +101,7 @@ if(UNIX)
   set(GLFW3_LIBRARY glfw)
 endif()
 
-include_directories(${GLFW3_INCLUDE_DIR} src src/tools src/window src/vulkan src/model include/glad/include  include/VkBootstrap/ include/imgui/ include/)
+include_directories(${GLFW3_INCLUDE_DIR} src src/tools src/window src/vulkan src/model include/glad/include  include/VkBootstrap/ include/imgui/ include/tinygltf/ include/)
 
 target_compile_definitions(${PROJECT_NAME} PRIVATE GLFW_INCLUDE_NONE)
 

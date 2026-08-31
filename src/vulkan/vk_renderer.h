@@ -46,6 +46,7 @@ public:
 
 private:
 	VkRenderData m_RenderData{};
+	VkGltfRenderData m_GltfRenderData{};
 
 	VkSurfaceKHR m_Surface = VK_NULL_HANDLE;
 	VkDeviceSize m_MinUniformBufferOssetAligment = 0;

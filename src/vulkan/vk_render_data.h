@@ -43,7 +43,7 @@ struct VkTextureData
 
 struct VkVertexBufferData 
 {
-	unsigned int rendererVertexBufferSize = 2048;
+	unsigned int rendererVertexBufferSize = 0;
 	VkBuffer rendererVertexBuffer = VK_NULL_HANDLE;
 	VmaAllocation rendererVertexBufferAllocation = nullptr;
 	VkBuffer rendererStagingBuffer = VK_NULL_HANDLE;
