@@ -40,7 +40,7 @@ bool VkRendererTexture::loadTexture(VkRenderData& renderData, std::string textur
     VmaAllocationCreateInfo imageAllocInfo{};
     imageAllocInfo.usage = VMA_MEMORY_USAGE_CPU_ONLY;
 
-    if (vmaCreateImage(renderData.rendererAllocator, &imageInfo, &imageAllocInfo, &renderData.rendererTextureImage, &renderData.rendererTextureImageAlloc, nullptr) != VK_SUCCESS) 
+    if (vmaCreateImage(renderData.rendererAllocator, &imageInfo, &imageAllocInfo, &renderData.rendererModelTexture.textureImage, &renderData.rendererModelTexture.textureImageAllocation, nullptr) != VK_SUCCESS)
     {
         Logger::log(1, "%s error: could not allocate texture image via VMA\n", __FUNCTION__);
         return false;
@@ -92,7 +92,7 @@ bool VkRendererTexture::loadTexture(VkRenderData& renderData, std::string textur
     stagingBufferTransferBarrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
     stagingBufferTransferBarrier.oldLayout = VK_IMAGE_LAYOUT_UNDEFINED;
     stagingBufferTransferBarrier.newLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
-    stagingBufferTransferBarrier.image = renderData.rendererTextureImage;
+    stagingBufferTransferBarrier.image = renderData.rendererModelTexture.textureImage;
     stagingBufferTransferBarrier.subresourceRange = stagingBufferRange;
     stagingBufferTransferBarrier.srcAccessMask = 0;
     stagingBufferTransferBarrier.dstAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
@@ -117,7 +117,7 @@ bool VkRendererTexture::loadTexture(VkRenderData& renderData, std::string textur
     stagingBufferShaderBarrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
     stagingBufferShaderBarrier.oldLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
     stagingBufferShaderBarrier.newLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-    stagingBufferShaderBarrier.image = renderData.rendererTextureImage;
+    stagingBufferShaderBarrier.image = renderData.rendererModelTexture.textureImage;
     stagingBufferShaderBarrier.subresourceRange = stagingBufferRange;
     stagingBufferShaderBarrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
     stagingBufferShaderBarrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
@@ -139,7 +139,7 @@ bool VkRendererTexture::loadTexture(VkRenderData& renderData, std::string textur
     }
 
     vkCmdPipelineBarrier(stagingCommandBuffer, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT, 0, 0, nullptr, 0, nullptr, 1, &stagingBufferTransferBarrier);
-    vkCmdCopyBufferToImage(stagingCommandBuffer, stagingBuffer, renderData.rendererTextureImage, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &stagingBufferCopy);
+    vkCmdCopyBufferToImage(stagingCommandBuffer, stagingBuffer, renderData.rendererModelTexture.textureImage, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &stagingBufferCopy);
     vkCmdPipelineBarrier(stagingCommandBuffer, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT, 0, 0, nullptr, 0, nullptr, 1, &stagingBufferShaderBarrier);
 
     if (vkEndCommandBuffer(stagingCommandBuffer) != VK_SUCCESS) 
@@ -195,7 +195,7 @@ bool VkRendererTexture::loadTexture(VkRenderData& renderData, std::string textur
     /* image view and sampler */
     VkImageViewCreateInfo texViewInfo{};
     texViewInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
-    texViewInfo.image = renderData.rendererTextureImage;
+    texViewInfo.image = renderData.rendererModelTexture.textureImage;
     texViewInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
     texViewInfo.format = VK_FORMAT_R8G8B8A8_SRGB;
     texViewInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
@@ -204,7 +204,7 @@ bool VkRendererTexture::loadTexture(VkRenderData& renderData, std::string textur
     texViewInfo.subresourceRange.baseArrayLayer = 0;
     texViewInfo.subresourceRange.layerCount = 1;
 
-    if (vkCreateImageView(renderData.rendererVkbDevice.device, &texViewInfo, nullptr, &renderData.rendererTextureImageView) != VK_SUCCESS) 
+    if (vkCreateImageView(renderData.rendererVkbDevice.device, &texViewInfo, nullptr, &renderData.rendererModelTexture.textureImageView) != VK_SUCCESS) 
     {
         Logger::log(1, "%s error: could not create image view for texture\n", __FUNCTION__);
         return false;
@@ -228,7 +228,7 @@ bool VkRendererTexture::loadTexture(VkRenderData& renderData, std::string textur
     texSamplerInfo.anisotropyEnable = VK_FALSE;
     texSamplerInfo.maxAnisotropy = 1.0f;
 
-    if (vkCreateSampler(renderData.rendererVkbDevice.device, &texSamplerInfo, nullptr, &renderData.rendererTextureSampler) != VK_SUCCESS)
+    if (vkCreateSampler(renderData.rendererVkbDevice.device, &texSamplerInfo, nullptr, &renderData.rendererModelTexture.textureSampler) != VK_SUCCESS)
     {
         Logger::log(1, "%s error: could not create sampler for texture\n", __FUNCTION__);
         return false;
@@ -246,7 +246,7 @@ bool VkRendererTexture::loadTexture(VkRenderData& renderData, std::string textur
     textureCreateInfo.bindingCount = 1;
     textureCreateInfo.pBindings = &textureBind;
 
-    if (vkCreateDescriptorSetLayout(renderData.rendererVkbDevice.device, &textureCreateInfo, nullptr, &renderData.rendererTextureDescriptorLayout) != VK_SUCCESS)
+    if (vkCreateDescriptorSetLayout(renderData.rendererVkbDevice.device, &textureCreateInfo, nullptr, &renderData.rendererModelTexture.textureDescriptorLayout) != VK_SUCCESS)
     {
         Logger::log(1, "%s error: could not create descriptor set layout\n", __FUNCTION__);
         return false;
@@ -262,7 +262,7 @@ bool VkRendererTexture::loadTexture(VkRenderData& renderData, std::string textur
     descriptorPool.pPoolSizes = &poolSize;
     descriptorPool.maxSets = 16;
 
-    if (vkCreateDescriptorPool(renderData.rendererVkbDevice.device, &descriptorPool, nullptr, &renderData.rendererTextureDescriptorPool) != VK_SUCCESS) 
+    if (vkCreateDescriptorPool(renderData.rendererVkbDevice.device, &descriptorPool, nullptr, &renderData.rendererModelTexture.textureDescriptorPool) != VK_SUCCESS)
     {
         Logger::log(1, "%s error: could not create descriptor pool\n", __FUNCTION__);
         return false;
@@ -270,11 +270,11 @@ bool VkRendererTexture::loadTexture(VkRenderData& renderData, std::string textur
 
     VkDescriptorSetAllocateInfo descriptorAllocateInfo{};
     descriptorAllocateInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
-    descriptorAllocateInfo.descriptorPool = renderData.rendererTextureDescriptorPool;
+    descriptorAllocateInfo.descriptorPool = renderData.rendererModelTexture.textureDescriptorPool;
     descriptorAllocateInfo.descriptorSetCount = 1;
-    descriptorAllocateInfo.pSetLayouts = &renderData.rendererTextureDescriptorLayout;
+    descriptorAllocateInfo.pSetLayouts = &renderData.rendererModelTexture.textureDescriptorLayout;
 
-    if (vkAllocateDescriptorSets(renderData.rendererVkbDevice.device, &descriptorAllocateInfo, &renderData.rendererTextureDescriptorSet) != VK_SUCCESS)
+    if (vkAllocateDescriptorSets(renderData.rendererVkbDevice.device, &descriptorAllocateInfo, &renderData.rendererModelTexture.textureDescriptorSet) != VK_SUCCESS)
     {
         Logger::log(1, "%s error: could not allocate descriptor set\n", __FUNCTION__);
         return false;
@@ -282,13 +282,13 @@ bool VkRendererTexture::loadTexture(VkRenderData& renderData, std::string textur
 
     VkDescriptorImageInfo descriptorImageInfo{};
     descriptorImageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-    descriptorImageInfo.imageView = renderData.rendererTextureImageView;
-    descriptorImageInfo.sampler = renderData.rendererTextureSampler;
+    descriptorImageInfo.imageView = renderData.rendererModelTexture.textureImageView;
+    descriptorImageInfo.sampler = renderData.rendererModelTexture.textureSampler;
 
     VkWriteDescriptorSet writeDescriptorSet{};
     writeDescriptorSet.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
     writeDescriptorSet.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-    writeDescriptorSet.dstSet = renderData.rendererTextureDescriptorSet;
+    writeDescriptorSet.dstSet = renderData.rendererModelTexture.textureDescriptorSet;
     writeDescriptorSet.dstBinding = 0;
     writeDescriptorSet.descriptorCount = 1;
     writeDescriptorSet.pImageInfo = &descriptorImageInfo;
@@ -300,9 +300,9 @@ bool VkRendererTexture::loadTexture(VkRenderData& renderData, std::string textur
 }
 
 void VkRendererTexture::cleanup(VkRenderData& renderData) {
-    vkDestroyDescriptorPool(renderData.rendererVkbDevice.device, renderData.rendererTextureDescriptorPool, nullptr);
-    vkDestroyDescriptorSetLayout(renderData.rendererVkbDevice.device, renderData.rendererTextureDescriptorLayout, nullptr);
-    vkDestroySampler(renderData.rendererVkbDevice.device, renderData.rendererTextureSampler, nullptr);
-    vkDestroyImageView(renderData.rendererVkbDevice.device, renderData.rendererTextureImageView, nullptr);
-    vmaDestroyImage(renderData.rendererAllocator, renderData.rendererTextureImage, renderData.rendererTextureImageAlloc);
+    vkDestroyDescriptorPool(renderData.rendererVkbDevice.device, renderData.rendererModelTexture.textureDescriptorPool, nullptr);
+    vkDestroyDescriptorSetLayout(renderData.rendererVkbDevice.device, renderData.rendererModelTexture.textureDescriptorLayout, nullptr);
+    vkDestroySampler(renderData.rendererVkbDevice.device, renderData.rendererModelTexture.textureSampler, nullptr);
+    vkDestroyImageView(renderData.rendererVkbDevice.device, renderData.rendererModelTexture.textureImageView, nullptr);
+    vmaDestroyImage(renderData.rendererAllocator, renderData.rendererModelTexture.textureImage, renderData.rendererModelTexture.textureImageAllocation);
 }

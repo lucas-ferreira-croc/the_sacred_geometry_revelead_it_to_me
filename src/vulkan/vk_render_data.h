@@ -28,20 +28,63 @@ struct VkUploadMatrices
 	glm::mat4 projectionMatrix;
 };
 
+
+struct VkTextureData 
+{
+	VkImage textureImage = VK_NULL_HANDLE;
+	VkImageView textureImageView = VK_NULL_HANDLE;
+	VkSampler textureSampler = VK_NULL_HANDLE;
+	VmaAllocation textureImageAllocation = VK_NULL_HANDLE;
+
+	VkDescriptorPool textureDescriptorPool = VK_NULL_HANDLE;
+	VkDescriptorSetLayout textureDescriptorLayout = VK_NULL_HANDLE;
+	VkDescriptorSet textureDescriptorSet = VK_NULL_HANDLE;
+};
+
+struct VkVertexBufferData 
+{
+	unsigned int rendererVertexBufferSize = 2048;
+	VkBuffer rendererVertexBuffer = VK_NULL_HANDLE;
+	VmaAllocation rendererVertexBufferAllocation = nullptr;
+	VkBuffer rendererStagingBuffer = VK_NULL_HANDLE;
+	VmaAllocation rendererStagingBufferAllocation = nullptr;
+};
+
+struct VkIndexBufferData
+{
+	unsigned int rendererIndexBufferSize = 0;
+	VkBuffer rendererIndexBuffer = VK_NULL_HANDLE;
+	VmaAllocation rendererIndexBufferAllocation = nullptr;
+	VkBuffer rendererStagingBuffer = VK_NULL_HANDLE;
+	VmaAllocation rendererStagingBufferAllocation = nullptr;
+};
+
+struct VkGltfRenderData
+{
+	std::vector<VkVertexBufferData> rendererGltfVertexBufferData{};
+	VkIndexBufferData rendererGltfIndexBufferData{};
+	VkTextureData rendererGltfModelTexture{};
+};
+
 struct VkRenderData
 {
 	GLFWwindow* rendererWindow = nullptr;
+
 	int rendererWidth = 0;
 	int rendererHeight = 0;
 
 	unsigned int rendererTringleCount = 0;
+	unsigned int gltfTriangleCount = 0;
+
+	int rendererFieldOfView = 90;
+
 	float rendererFrameTime = 0.0f;
 	float rendererUIGenerateTime = 0.0f;
 	float matrixGenerateTime = 0.0f;
 	float uplaodToUBOTime = 0.0f;
 	float uiDrawTime = 0.0f;
 	bool rendererUseChangedShader = false;
-	int rendererFieldOfView = 90;
+	
 	float rendererViewYaw;
 	float rendererViewPitch;
 
@@ -49,10 +92,10 @@ struct VkRenderData
 	int rendererMoveRight = 0;
 	int rendererMoveUp = 0;
 	float rendererTickDiff = 0.0f;
+	
 	glm::vec3 m_RendererCameraWorldPos = glm::vec3(0.5f, 0.25f, 1.0f);
-
+	
 	VmaAllocator rendererAllocator;
-
 	vkb::Instance rendererVkbInstance{};
 	vkb::PhysicalDevice rendererVkbPhysicalDevice{};
 	vkb::Device rendererVkbDevice{};
@@ -75,6 +118,9 @@ struct VkRenderData
 	VkPipeline rendererPipeline = VK_NULL_HANDLE;
 	VkPipeline rendererChangedPipeline = VK_NULL_HANDLE;
 
+	VkPipelineLayout rendererGltfPipelineLayout = VK_NULL_HANDLE;
+	VkPipeline rendererGltfPipeline = VK_NULL_HANDLE;
+
 	VkCommandPool rendererCommandPool = VK_NULL_HANDLE;
 	VkCommandBuffer rendererCommandBuffer = VK_NULL_HANDLE;
 
@@ -83,14 +129,8 @@ struct VkRenderData
 	VkFence rendererPresentFence = VK_NULL_HANDLE;
 	VkFence rendererRenderFence = VK_NULL_HANDLE;
 
-	VkImage rendererTextureImage = VK_NULL_HANDLE;
-	VkImageView rendererTextureImageView = VK_NULL_HANDLE;
-	VkSampler rendererTextureSampler = VK_NULL_HANDLE;
-	VmaAllocation rendererTextureImageAlloc = VK_NULL_HANDLE;
-
-	VkDescriptorPool rendererTextureDescriptorPool = VK_NULL_HANDLE;
-	VkDescriptorSetLayout rendererTextureDescriptorLayout = VK_NULL_HANDLE;
-	VkDescriptorSet rendererTextureDescriptorSet = VK_NULL_HANDLE;
+	VkTextureData rendererModelTexture{};
+	VkVertexBufferData rendererVertexBufferData{};
 
 	VkBuffer rendererUboBuffer = VK_NULL_HANDLE;
 	VmaAllocation rendererUboBufferAlloc = nullptr;
@@ -100,12 +140,6 @@ struct VkRenderData
 	VkDescriptorSet rendererUboDescriptorSet = VK_NULL_HANDLE;
 
 	VkDescriptorPool rendererImguiDescriptorPool = VK_NULL_HANDLE;
-
-	unsigned int rendererVertexBufferSize = 2048;
-	VkBuffer rendererVertexBuffer = VK_NULL_HANDLE;
-	VmaAllocation rendererVertexBufferAllocation = nullptr;
-	VkBuffer rendererVertexBufferStagingBuffer = VK_NULL_HANDLE;
-	VmaAllocation rendererVertexBufferStagingBufferAllocation = VK_NULL_HANDLE;
 };
 
 #endif

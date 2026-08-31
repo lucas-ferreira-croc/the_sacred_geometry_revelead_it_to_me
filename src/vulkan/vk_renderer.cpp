@@ -248,8 +248,8 @@ bool VkRenderer::draw() {
 	vkCmdSetScissor(m_RenderData.rendererCommandBuffer, 0, 1, &scissor);
 
 	VkDeviceSize offset = 0;
-	vkCmdBindVertexBuffers(m_RenderData.rendererCommandBuffer, 0, 1, &m_RenderData.rendererVertexBuffer, &offset);
-	vkCmdBindDescriptorSets(m_RenderData.rendererCommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_RenderData.rendererPipelineLayout, 0, 1, & m_RenderData.rendererTextureDescriptorSet, 0, nullptr);
+	vkCmdBindVertexBuffers(m_RenderData.rendererCommandBuffer, 0, 1, &m_RenderData.rendererVertexBufferData.rendererVertexBuffer, &offset);
+	vkCmdBindDescriptorSets(m_RenderData.rendererCommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_RenderData.rendererPipelineLayout, 0, 1, & m_RenderData.rendererModelTexture.textureDescriptorSet, 0, nullptr);
 	vkCmdBindDescriptorSets(m_RenderData.rendererCommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_RenderData.rendererPipelineLayout, 1, 1, &m_RenderData.rendererUboDescriptorSet, 0, nullptr);
 
 	vkCmdDraw(m_RenderData.rendererCommandBuffer, m_RenderData.rendererTringleCount * 3, 1, 0, 0);

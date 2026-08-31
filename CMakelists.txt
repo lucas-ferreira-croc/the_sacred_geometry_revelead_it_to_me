@@ -65,10 +65,13 @@ add_executable(main ${SOURCES}
                "src/vulkan/vk_pipeline_layout.cpp"
                "src/vulkan/vk_user_interface.h" 
                "src/vulkan/vk_user_interaface.cpp"
+               "src/vulkan/vk_vertex_buffer.h" 
+               "src/vulkan/vk_vertex_buffer.cpp"
 
+               # miscelaneous
                "src/tools/timer.h"
                "src/tools/timer.cpp"  
-               "src/tools/camera.h" "src/tools/camera.cpp"  "src/vulkan/vk_vertex_buffer.h" "src/vulkan/vk_vertex_buffer.cpp")
+               "src/tools/camera.h" "src/tools/camera.cpp" )
 
 compile_vk_shader("basic_vk.vert" main)
 compile_vk_shader("basic_vk.frag" main)
