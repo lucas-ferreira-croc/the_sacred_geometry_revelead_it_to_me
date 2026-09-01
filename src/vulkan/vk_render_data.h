@@ -26,6 +26,7 @@ struct VkUploadMatrices
 {
 	glm::mat4 viewMatrix;
 	glm::mat4 projectionMatrix;
+	glm::vec3 cameraPosition;
 };
 
 
@@ -59,12 +60,26 @@ struct VkIndexBufferData
 	VmaAllocation rendererStagingBufferAllocation = nullptr;
 };
 
-struct VkGltfRenderData
+struct VkGltfPrimitiveData
 {
 	std::vector<VkVertexBufferData> rendererGltfVertexBufferData{};
 	VkIndexBufferData rendererGltfIndexBufferData{};
+	uint32_t indexCount = 0;
+	VkIndexType indexType;
+};
+
+struct VkGltfMesh
+{
+	std::vector<VkGltfPrimitiveData> primitives{};
+};
+
+struct VkGltfRenderData
+{
+	std::vector<VkGltfMesh> meshes{};
 	VkTextureData rendererGltfModelTexture{};
 };
+
+
 
 struct VkRenderData
 {

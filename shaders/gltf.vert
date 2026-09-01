@@ -6,17 +6,21 @@ layout(location = 2) in vec2 aTexCoord;
 
 layout(location = 0) out vec3 normal;
 layout(location = 1) out vec2 texCoord;
+layout(location = 2) out vec3 cameraPositionCameraSpace;
 
 layout(set = 1, binding = 0) uniform Matrices
 {
-	
 	mat4 view;
 	mat4 projection;
+	vec3 cameraPos;
 };
+
 
 void main()
 {
 	gl_Position = projection * view * vec4(aPos, 1.0);
 	normal = aNormal;
 	texCoord = aTexCoord;
+	vec4 cameraSpace = view * vec4(aPos, 1.0);
+	cameraPositionCameraSpace = vec3(cameraSpace.xyz);
 }

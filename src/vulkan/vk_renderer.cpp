@@ -242,13 +242,13 @@ bool VkRenderer::draw() {
 	glm::mat4 model = glm::mat4(1.0f);
 	if (m_RenderData.rendererUseChangedShader)
 	{
-		model = glm::rotate(glm::mat4(1.0f), t, glm::vec3(0.0f, 1.0f, 0.0f));
+		//model = glm::rotate(glm::mat4(1.0f), t, glm::vec3(0.0f, 1.0f, 0.0f));
 	}
 	else
 	{
 		glm::mat4 rotationY = glm::rotate(glm::mat4(1.0f), -t, glm::vec3(0.0f, 1.0f, 0.0f));
 		glm::mat4 flipX = glm::rotate(glm::mat4(1.0f), glm::radians(180.0f), glm::vec3(1.0f, 0.0f, 0.0f));
-		model = model * rotationY * flipX;
+		model = model /** rotationY */* flipX;
 	}
 	m_Matrices.viewMatrix = m_Camera.getViewMatrix(m_RenderData) * model;
 	m_RenderData.matrixGenerateTime = m_MatrixGenerateTimer.stop();
@@ -256,6 +256,11 @@ bool VkRenderer::draw() {
 
 	m_GltfModel->uploadVertexBuffers(m_RenderData, m_GltfRenderData);
 	m_GltfModel->uploadIndexBuffers(m_RenderData, m_GltfRenderData);
+
+	m_UploadToUBOTimer.start();
+	m_Matrices.cameraPosition = m_RenderData.m_RendererCameraWorldPos;
+	VkRendererUniformBuffer::uploadData(m_RenderData, m_Matrices);
+	m_RenderData.uplaodToUBOTime = m_UploadToUBOTimer.stop();
 
 	vkCmdBeginRenderPass(m_RenderData.rendererCommandBuffer, &rpInfo, VK_SUBPASS_CONTENTS_INLINE);
 
@@ -275,6 +280,8 @@ bool VkRenderer::draw() {
 
 	//vkCmdDraw(m_RenderData.rendererCommandBuffer, m_RenderData.rendererTringleCount * 3, 1, 0, 0);
 
+	
+
 	m_GltfModel->draw(m_RenderData, m_GltfRenderData);
 
 	m_UIGeneratorTimer.start();
@@ -292,9 +299,7 @@ bool VkRenderer::draw() {
 		return false;
 	}
 
-	m_UploadToUBOTimer.start();
-	VkRendererUniformBuffer::uploadData(m_RenderData, m_Matrices);
-	m_RenderData.uplaodToUBOTime = m_UploadToUBOTimer.stop();
+
 
 	VkSubmitInfo submitInfo{};
 	submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
@@ -633,8 +638,8 @@ bool VkRenderer::createPipelines()
 bool VkRenderer::loadGltfModel()
 {
 	m_GltfModel = std::make_shared<GltfModel>();
-	std::string modelFilename = "C:\\dev\\the_sacred_geometry_revelead_it_to_me\\assets\\wooden_teapot\\scene.gltf";
-	std::string textureFilename = "C:\\dev\\the_sacred_geometry_revelead_it_to_me\\assets\\wooden_teapot\\textures\\DefaultMaterial_baseColor.jpeg";
+	std::string modelFilename = "C:\\dev\\the_sacred_geometry_revelead_it_to_me\\assets\\models\\sacred.gltf";
+	std::string textureFilename = "C:\\dev\\the_sacred_geometry_revelead_it_to_me\\assets\\models\\photo_cubas.png";
 
 	if (!m_GltfModel->loadModel(m_RenderData, m_GltfRenderData, modelFilename, textureFilename))
 	{

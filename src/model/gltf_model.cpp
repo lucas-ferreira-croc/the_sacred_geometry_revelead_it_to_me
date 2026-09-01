@@ -50,80 +50,128 @@ bool GltfModel::loadModel(VkRenderData& renderData, VkGltfRenderData& gltfRender
 void GltfModel::createVertexBuffers(VkRenderData& renderData, VkGltfRenderData& gltfRenderData)
 {
 	// TODO: must change to work with models with > 1 mesh
-	const tinygltf::Primitive& primitives = m_Model->meshes.at(0).primitives.at(0);
-	gltfRenderData.rendererGltfVertexBufferData.resize(primitives.attributes.size());
-
-	for(const auto& attribute : primitives.attributes)
+	gltfRenderData.meshes.resize(m_Model->meshes.size());
+	for(size_t m = 0; m < m_Model->meshes.size(); m++)
 	{
-		const std::string attributeType = attribute.first;
-		const int accessorNumber = attribute.second;
+		const tinygltf::Mesh& mesh = m_Model->meshes.at(m);
+		gltfRenderData.meshes.at(m).primitives.resize(mesh.primitives.size());
 
-		const tinygltf::Accessor& acessor = m_Model->accessors.at(accessorNumber);
-		const tinygltf::BufferView& bufferView = m_Model->bufferViews.at(acessor.bufferView);
-		const tinygltf::Buffer& buffer = m_Model->buffers.at(bufferView.buffer);
-
-		if((attributeType.compare("POSITION") != 0) && (attributeType.compare("NORMAL") != 0) && (attributeType.compare("TEXCOORD_0") != 0))
+		for(size_t p = 0; p < mesh.primitives.size(); p++)
 		{
-			Logger::log(1, "%s: skipping attribute type %s \n", __FUNCTION__, attributeType.c_str());
-			continue;
-		}
+			const tinygltf::Primitive& primitives = mesh.primitives.at(p);
+			gltfRenderData.meshes.at(m).primitives.at(p).rendererGltfVertexBufferData.resize(3);
+			for(const auto& attribute : primitives.attributes)
+			{
+				const std::string attributeType = attribute.first;
+				const int accessorNumber = attribute.second;
 
-		VkVertexBuffer::init(renderData, gltfRenderData.rendererGltfVertexBufferData.at(attributes.at(attributeType)), bufferView.byteLength);
+				const tinygltf::Accessor& acessor = m_Model->accessors.at(accessorNumber);
+				const tinygltf::BufferView& bufferView = m_Model->bufferViews.at(acessor.bufferView);
+				const tinygltf::Buffer& buffer = m_Model->buffers.at(bufferView.buffer);
+
+				if((attributeType.compare("POSITION") != 0) && (attributeType.compare("NORMAL") != 0) && (attributeType.compare("TEXCOORD_0") != 0))
+				{
+					Logger::log(1, "%s: skipping attribute type %s \n", __FUNCTION__, attributeType.c_str());
+					continue;
+				}
+				int targetBinding = attributes.at(attributeType);
+				VkVertexBufferData& vertexBufferData = gltfRenderData.meshes.at(m).primitives.at(p).rendererGltfVertexBufferData.at(targetBinding);
+
+				VkVertexBuffer::init(renderData, vertexBufferData, bufferView.byteLength);
+			}
+		}
 	}
+
 }
 
 void GltfModel::createIndexBuffers(VkRenderData& renderData, VkGltfRenderData& gltfRenderData)
 {
 	// TODO: must change to work with models with > 1 mesh
-	const tinygltf::Primitive& primitives = m_Model->meshes.at(0).primitives.at(0);
+
+	for (size_t m = 0; m < m_Model->meshes.size(); m++)
+	{
+		const tinygltf::Mesh& mesh = m_Model->meshes.at(m);
+		for (size_t p = 0; p < mesh.primitives.size(); p++)
+		{
+			const tinygltf::Primitive& primitive = mesh.primitives.at(p);
+
+			VkGltfPrimitiveData& primitiveData = gltfRenderData.meshes.at(m).primitives.at(p);
+			const tinygltf::Accessor& indexAcessor = m_Model->accessors.at(primitive.indices);
+			const tinygltf::BufferView& indexBufferView = m_Model->bufferViews.at(indexAcessor.bufferView);
+			VkIndexBuffer::init(renderData, primitiveData.rendererGltfIndexBufferData, indexBufferView.byteLength);
+
+			primitiveData.indexCount = static_cast<uint32_t>(indexAcessor.count);
+			primitiveData.indexType = VK_INDEX_TYPE_UINT32;
+			if (indexAcessor.componentType == TINYGLTF_COMPONENT_TYPE_UNSIGNED_BYTE) {
+				primitiveData.indexType = VK_INDEX_TYPE_UINT8_EXT;
+			}
+			else if (indexAcessor.componentType == TINYGLTF_COMPONENT_TYPE_UNSIGNED_SHORT) {
+				primitiveData.indexType = VK_INDEX_TYPE_UINT16;
+			}
+		}
+	}
+
+	/*const tinygltf::Primitive& primitives = m_Model->meshes.at(0).primitives.at(0);
 	const tinygltf::Accessor& indexAcessor = m_Model->accessors.at(primitives.indices);
 	const tinygltf::BufferView& indexBufferView = m_Model->bufferViews.at(indexAcessor.bufferView);
 	const tinygltf::Buffer& buffer = m_Model->buffers.at(indexBufferView.buffer);
 
-	VkIndexBuffer::init(renderData, gltfRenderData.rendererGltfIndexBufferData, indexBufferView.byteLength);
+	VkIndexBuffer::init(renderData, gltfRenderData.rendererGltfIndexBufferData, indexBufferView.byteLength);*/
 }
 
 void GltfModel::uploadVertexBuffers(VkRenderData& renderData, VkGltfRenderData& gltfRenderData)
 {
 	// TODO: must change if going to use > 3 buffers
-	const tinygltf::Primitive& primitives = m_Model->meshes.at(0).primitives.at(0);
-
-	for(const auto& attribute : primitives.attributes)
+	
+	for (size_t m = 0; m < m_Model->meshes.size(); m++)
 	{
-		const std::string attributeType = attribute.first;
-		const int accessorNumber = attribute.second;
+		const tinygltf::Mesh& mesh = m_Model->meshes.at(m);
 
-		if ((attributeType.compare("POSITION") != 0) && (attributeType.compare("NORMAL") != 0) && (attributeType.compare("TEXCOORD_0") != 0))
+		for (size_t p = 0; p < mesh.primitives.size(); p++)
 		{
-			continue;
+			const tinygltf::Primitive& primitive = mesh.primitives.at(p);
+			for (const auto& attribute : primitive.attributes)
+			{
+				const std::string attributeType = attribute.first;
+				const int accessorNumber = attribute.second;
 
+				if ((attributeType.compare("POSITION") != 0) && (attributeType.compare("NORMAL") != 0) && (attributeType.compare("TEXCOORD_0") != 0))
+				{
+					continue;
+
+				}
+				int targetBinding = attributes.at(attributeType);
+
+				const tinygltf::Accessor& acessor = m_Model->accessors.at(accessorNumber);
+				const tinygltf::BufferView& bufferView = m_Model->bufferViews.at(acessor.bufferView);
+				const tinygltf::Buffer& buffer = m_Model->buffers.at(bufferView.buffer);
+
+				VkVertexBufferData vertexBufferdata = gltfRenderData.meshes.at(m).primitives.at(p).rendererGltfVertexBufferData.at(targetBinding);
+
+				VkVertexBuffer::uploadData(renderData, vertexBufferdata, buffer, bufferView);
+			}
 		}
-		int targetBinding = attributes.at(attributeType);
-
-		const tinygltf::Accessor& acessor = m_Model->accessors.at(accessorNumber);
-		const tinygltf::BufferView& bufferView = m_Model->bufferViews.at(acessor.bufferView);
-		const tinygltf::Buffer& buffer = m_Model->buffers.at(bufferView.buffer);
-		VkVertexBuffer::uploadData(renderData, gltfRenderData.rendererGltfVertexBufferData.at(targetBinding), buffer, bufferView);
 	}
-
-	//for (int i = 0; i < 3; i++)
-	//{
-	//	const tinygltf::Accessor& acessor = m_Model->accessors.at(i);
-	//	const tinygltf::BufferView& bufferView = m_Model->bufferViews.at(acessor.bufferView);
-	//	const tinygltf::Buffer& buffer = m_Model->buffers.at(bufferView.buffer);
-
-	//	VkVertexBuffer::uploadData(renderData, gltfRenderData.rendererGltfVertexBufferData.at(i), buffer, bufferView);
-	//}
 }
 
 void GltfModel::uploadIndexBuffers(VkRenderData& renderData, VkGltfRenderData& gltfRenderData)
 {
-	const tinygltf::Primitive& primitives = m_Model->meshes.at(0).primitives.at(0);
-	const tinygltf::Accessor& indexAcessor = m_Model->accessors.at(primitives.indices);
-	const tinygltf::BufferView& indexBufferView = m_Model->bufferViews.at(indexAcessor.bufferView);
-	const tinygltf::Buffer& buffer = m_Model->buffers.at(indexBufferView.buffer);
+	for (size_t m = 0; m < m_Model->meshes.size(); m++)
+	{
+		const tinygltf::Mesh& mesh = m_Model->meshes.at(m);
 
-	VkIndexBuffer::uploadData(renderData, gltfRenderData.rendererGltfIndexBufferData, buffer, indexBufferView);
+		for (size_t p = 0; p < mesh.primitives.size(); p++)
+		{
+			const tinygltf::Primitive& primitive = mesh.primitives.at(p);
+
+			const tinygltf::Accessor& indexAcessor = m_Model->accessors.at(primitive.indices);
+			const tinygltf::BufferView& indexBufferView = m_Model->bufferViews.at(indexAcessor.bufferView);
+			const tinygltf::Buffer& buffer = m_Model->buffers.at(indexBufferView.buffer);
+
+			VkIndexBufferData& indexBufferData = gltfRenderData.meshes.at(m).primitives.at(p).rendererGltfIndexBufferData;
+			VkIndexBuffer::uploadData(renderData, indexBufferData, buffer, indexBufferView);
+		}
+	}
 }
 
 
@@ -136,38 +184,61 @@ void GltfModel::draw(VkRenderData& renderData, VkGltfRenderData& gltfRenderData)
 		renderData.rendererGltfPipelineLayout, 0, 1,
 		&gltfRenderData.rendererGltfModelTexture.textureDescriptorSet, 0, nullptr);
 
-	// TODO: must change if going to use > 3 buffers
-	VkDeviceSize offset = 0;
-	for(int i = 0; i < 3; i++)
-	{
-		vkCmdBindVertexBuffers(renderData.rendererCommandBuffer, i, 1, &gltfRenderData.rendererGltfVertexBufferData.at(i).rendererVertexBuffer, &offset);
-	}
-
-	VkIndexType indexType = VK_INDEX_TYPE_UINT32;
-	if (indexAcessor.componentType == TINYGLTF_COMPONENT_TYPE_UNSIGNED_BYTE) {
-		indexType = VK_INDEX_TYPE_UINT8_EXT;
-	}
-
-	vkCmdBindIndexBuffer(renderData.rendererCommandBuffer, gltfRenderData.rendererGltfIndexBufferData.rendererIndexBuffer, 0, indexType);
-
 	vkCmdBindPipeline(renderData.rendererCommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, renderData.rendererGltfPipeline);
 
-	vkCmdDrawIndexed(renderData.rendererCommandBuffer, static_cast<uint32_t>(renderData.gltfTriangleCount * 3), 1, 0, 0, 0);
+	for(size_t m = 0; m < gltfRenderData.meshes.size(); m++)
+	{
+		const VkGltfMesh& meshData = gltfRenderData.meshes.at(m);
+
+		for(size_t p = 0; p < meshData.primitives.size(); p++)
+		{
+			const VkGltfPrimitiveData& primitiveData = gltfRenderData.meshes.at(m).primitives.at(p);
+
+			VkDeviceSize offset = 0;
+			for(size_t i = 0; i < primitiveData.rendererGltfVertexBufferData.size(); i++)
+			{
+				vkCmdBindVertexBuffers(
+					renderData.rendererCommandBuffer,
+					static_cast<uint32_t>(i),
+					1,
+					&primitiveData.rendererGltfVertexBufferData.at(i).rendererVertexBuffer,
+					&offset
+				);
+
+			}
+			vkCmdBindIndexBuffer(
+				renderData.rendererCommandBuffer, 
+				primitiveData.rendererGltfIndexBufferData.rendererIndexBuffer,
+				0,
+				primitiveData.indexType
+			);
+
+			vkCmdDrawIndexed(
+				renderData.rendererCommandBuffer,
+				static_cast<uint32_t>(primitiveData.indexCount), 1, 0, 0, 0);
+
+		}
+	}
 }
 
 void GltfModel::cleanup(VkRenderData& renderData, VkGltfRenderData& gltfRenderData)
 {
-	// TODO: must change if going to use > 3 buffers
-	for (int i = 0; i < 3; i++)
+	for (auto& mesh : gltfRenderData.meshes)
 	{
-		VkVertexBuffer::cleanup(renderData, gltfRenderData.rendererGltfVertexBufferData.at(i));;
+		for (auto& primitive : mesh.primitives)
+		{
+			for (int i = 0; i < primitive.rendererGltfVertexBufferData.size(); i++)
+			{
+				VkVertexBuffer::cleanup(renderData, primitive.rendererGltfVertexBufferData.at(i));
+			}
+			VkIndexBuffer::cleanup(renderData, primitive.rendererGltfIndexBufferData);
+		}
 	}
-
-	VkIndexBuffer::cleanup(renderData, gltfRenderData.rendererGltfIndexBufferData);
 
 	VkRendererTexture::cleanup(renderData, gltfRenderData.rendererGltfModelTexture);
 	m_Model.reset();
 }
+
 
 
 
