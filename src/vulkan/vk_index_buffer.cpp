@@ -59,7 +59,7 @@ bool VkIndexBuffer::uploadData(VkRenderData& renderData, VkIndexBufferData& inde
 	}
 
 	void* data;
-	vmaMapMemory(renderData.rendererAllocator, indexBufferData.rendererIndexBufferAllocation, &data);
+	vmaMapMemory(renderData.rendererAllocator, indexBufferData.rendererStagingBufferAllocation, &data);
 	std::memcpy(data, &buffer.data.at(0) + bufferView.byteOffset, bufferView.byteLength);
 	vmaUnmapMemory(renderData.rendererAllocator, indexBufferData.rendererStagingBufferAllocation);
 

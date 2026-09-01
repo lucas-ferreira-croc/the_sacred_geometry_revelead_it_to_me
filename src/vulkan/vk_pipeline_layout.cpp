@@ -3,10 +3,10 @@
 
 #include <VkBootstrap.h>
 
-bool VkRendererPipelineLayout::init(VkRenderData& renderData, VkPipelineLayout& pipelineLayout)
+bool VkRendererPipelineLayout::init(VkRenderData& renderData, VkTextureData& textureData, VkPipelineLayout& pipelineLayout)
 {
 	VkDescriptorSetLayout layouts[] = { 
-		renderData.rendererModelTexture.textureDescriptorLayout, 
+		textureData.textureDescriptorLayout,
 		renderData.rendererUBODescriptorLayout,
 	};
 

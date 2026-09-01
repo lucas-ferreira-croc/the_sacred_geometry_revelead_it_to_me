@@ -23,6 +23,7 @@
 #include "vk_user_interface.h"
 #include "vk_model.h"
 #include "vk_vertex_buffer.h"
+#include "gltf_model.h"
 
 #include "tools/timer.h"
 
@@ -35,7 +36,6 @@ public:
 
 	bool init(unsigned int width, unsigned int height);
 	void setSize(unsigned int width, unsigned int height);
-	bool uploadData(VkMesh vertexData);
 	bool draw();
 	void cleanup();
 
@@ -83,8 +83,14 @@ private:
 	bool initVma();
 	bool recreateSwapChain();
 
+	bool loadGltfModel();
+	bool createGltfPipelineLayout();
+	bool createGltfPipeline();
+
 	std::unique_ptr<VkModel> m_Model = nullptr;
 	std::unique_ptr<VkMesh> m_AllMeshes = nullptr;
+
+	std::shared_ptr<GltfModel> m_GltfModel = nullptr;
 };
 
 #endif

@@ -14,7 +14,7 @@ public:
 		VkPrimitiveTopology topology,
 		std::string vertexShaderFilename, std::string fragmentShaderFilename);
 
-	static bool cleanup(VkRenderData& renderData, VkPipeline& pipeline);
+	static void cleanup(VkRenderData& renderData, VkPipeline& pipeline);
 };
 
 #endif

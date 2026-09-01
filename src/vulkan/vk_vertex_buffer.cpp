@@ -13,7 +13,7 @@ bool VkVertexBuffer::init(VkRenderData& renderData, VkVertexBufferData& vertexBu
 	VmaAllocationCreateInfo bufferAllocInfo{};
 	bufferAllocInfo.usage = VMA_MEMORY_USAGE_GPU_ONLY;
 
-	if(vmaCreateBuffer(renderData.rendererAllocator, &bufferInfo, &bufferAllocInfo, &renderData.rendererVertexBufferData.rendererVertexBuffer, &renderData.rendererVertexBufferData.rendererVertexBufferAllocation, nullptr) != VK_SUCCESS)
+	if(vmaCreateBuffer(renderData.rendererAllocator, &bufferInfo, &bufferAllocInfo, &vertexBufferData.rendererVertexBuffer, &vertexBufferData.rendererVertexBufferAllocation, nullptr) != VK_SUCCESS)
 	{
 		Logger::log(1, "%s error: could not allocate vertex buffer via VMA\n", __FUNCTION__);
 		return false;
@@ -28,7 +28,7 @@ bool VkVertexBuffer::init(VkRenderData& renderData, VkVertexBufferData& vertexBu
 	VmaAllocationCreateInfo staggingBufferAllocInfo{};
 	staggingBufferAllocInfo.usage = VMA_MEMORY_USAGE_CPU_ONLY;
 
-	if (vmaCreateBuffer(renderData.rendererAllocator, &stagingBufferInfo, &staggingBufferAllocInfo, &renderData.rendererVertexBufferData.rendererStagingBuffer, &renderData.rendererVertexBufferData.rendererStagingBufferAllocation, nullptr) != VK_SUCCESS)
+	if (vmaCreateBuffer(renderData.rendererAllocator, &stagingBufferInfo, &staggingBufferAllocInfo, &vertexBufferData.rendererStagingBuffer, &vertexBufferData.rendererStagingBufferAllocation, nullptr) != VK_SUCCESS)
 	{
 		Logger::log(1, "%s error: could not allocate vertex staging buffer via VMA\n", __FUNCTION__);
 		return false;
@@ -42,9 +42,9 @@ bool VkVertexBuffer::uploadData(VkRenderData& renderData, VkVertexBufferData& ve
 {	
 	unsigned int vertexDataSize = vertexData.vertices.size() * sizeof(VkVertex);
 
-	if(renderData.rendererVertexBufferData.rendererVertexBufferSize < vertexDataSize)
+	if(vertexBufferData.rendererVertexBufferSize < vertexDataSize)
 	{
-		renderData.rendererVertexBufferData.rendererVertexBufferSize = vertexDataSize;
+		vertexBufferData.rendererVertexBufferSize = vertexDataSize;
 		cleanup(renderData, vertexBufferData);
 
 		if(!init(renderData, vertexBufferData, vertexDataSize))
@@ -54,9 +54,9 @@ bool VkVertexBuffer::uploadData(VkRenderData& renderData, VkVertexBufferData& ve
 	}
 
 	void* data;
-	vmaMapMemory(renderData.rendererAllocator, renderData.rendererVertexBufferData.rendererStagingBufferAllocation, &data);
+	vmaMapMemory(renderData.rendererAllocator, vertexBufferData.rendererStagingBufferAllocation, &data);
 	std::memcpy(data, vertexData.vertices.data(), vertexDataSize);
-	vmaUnmapMemory(renderData.rendererAllocator, renderData.rendererVertexBufferData.rendererStagingBufferAllocation);
+	vmaUnmapMemory(renderData.rendererAllocator, vertexBufferData.rendererStagingBufferAllocation);
 
 	VkBufferMemoryBarrier vertexBufferBarrier{};
 	vertexBufferBarrier.sType = VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER;
@@ -64,7 +64,7 @@ bool VkVertexBuffer::uploadData(VkRenderData& renderData, VkVertexBufferData& ve
 	vertexBufferBarrier.dstAccessMask = VK_ACCESS_VERTEX_ATTRIBUTE_READ_BIT;
 	vertexBufferBarrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
 	vertexBufferBarrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-	vertexBufferBarrier.buffer = renderData.rendererVertexBufferData.rendererStagingBuffer;
+	vertexBufferBarrier.buffer = vertexBufferData.rendererStagingBuffer;
 	vertexBufferBarrier.offset = 0;
 	vertexBufferBarrier.size = vertexDataSize;
 
@@ -73,7 +73,7 @@ bool VkVertexBuffer::uploadData(VkRenderData& renderData, VkVertexBufferData& ve
 	stagingBufferCopy.dstOffset = 0;
 	stagingBufferCopy.size = vertexDataSize;
 
-	vkCmdCopyBuffer(renderData.rendererCommandBuffer, renderData.rendererVertexBufferData.rendererStagingBuffer, renderData.rendererVertexBufferData.rendererVertexBuffer, 1, &stagingBufferCopy);
+	vkCmdCopyBuffer(renderData.rendererCommandBuffer, vertexBufferData.rendererStagingBuffer, vertexBufferData.rendererVertexBuffer, 1, &stagingBufferCopy);
 	vkCmdPipelineBarrier(renderData.rendererCommandBuffer, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_VERTEX_INPUT_BIT, 0, 0, nullptr, 1, &vertexBufferBarrier, 0, nullptr);
 
 	return true;

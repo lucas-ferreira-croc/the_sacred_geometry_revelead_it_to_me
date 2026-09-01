@@ -4,6 +4,7 @@
 
 
 #include "vk_renderer.h"
+#include "vk_gltf_pipeline.h"
 #include "logger.h"
 
 #include <glm/gtc/matrix_transform.hpp>
@@ -79,6 +80,21 @@ bool VkRenderer::init(unsigned int width, unsigned int height)
 
 	/* pipeline needs texture layout */
 	if (!createPipelines()) {
+		return false;
+	}
+
+	if(!loadGltfModel())
+	{
+		return false;
+	}
+
+	if(!createGltfPipelineLayout())
+	{
+		return false;
+	}
+
+	if(!createGltfPipeline())
+	{
 		return false;
 	}
 
@@ -226,15 +242,20 @@ bool VkRenderer::draw() {
 	glm::mat4 model = glm::mat4(1.0f);
 	if (m_RenderData.rendererUseChangedShader)
 	{
-		model = glm::rotate(glm::mat4(1.0f), t, glm::vec3(0.0f, 0.0f, 1.0f));
+		model = glm::rotate(glm::mat4(1.0f), t, glm::vec3(0.0f, 1.0f, 0.0f));
 	}
 	else
 	{
-		model = glm::rotate(glm::mat4(1.0f), -t, glm::vec3(0.0f, 0.0f, 1.0f));
+		glm::mat4 rotationY = glm::rotate(glm::mat4(1.0f), -t, glm::vec3(0.0f, 1.0f, 0.0f));
+		glm::mat4 flipX = glm::rotate(glm::mat4(1.0f), glm::radians(180.0f), glm::vec3(1.0f, 0.0f, 0.0f));
+		model = model * rotationY * flipX;
 	}
 	m_Matrices.viewMatrix = m_Camera.getViewMatrix(m_RenderData) * model;
 	m_RenderData.matrixGenerateTime = m_MatrixGenerateTimer.stop();
 	VkVertexBuffer::uploadData(m_RenderData, m_RenderData.rendererVertexBufferData, *m_AllMeshes);
+
+	m_GltfModel->uploadVertexBuffers(m_RenderData, m_GltfRenderData);
+	m_GltfModel->uploadIndexBuffers(m_RenderData, m_GltfRenderData);
 
 	vkCmdBeginRenderPass(m_RenderData.rendererCommandBuffer, &rpInfo, VK_SUBPASS_CONTENTS_INLINE);
 
@@ -252,7 +273,9 @@ bool VkRenderer::draw() {
 	vkCmdBindDescriptorSets(m_RenderData.rendererCommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_RenderData.rendererPipelineLayout, 0, 1, & m_RenderData.rendererModelTexture.textureDescriptorSet, 0, nullptr);
 	vkCmdBindDescriptorSets(m_RenderData.rendererCommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_RenderData.rendererPipelineLayout, 1, 1, &m_RenderData.rendererUboDescriptorSet, 0, nullptr);
 
-	vkCmdDraw(m_RenderData.rendererCommandBuffer, m_RenderData.rendererTringleCount * 3, 1, 0, 0);
+	//vkCmdDraw(m_RenderData.rendererCommandBuffer, m_RenderData.rendererTringleCount * 3, 1, 0, 0);
+
+	m_GltfModel->draw(m_RenderData, m_GltfRenderData);
 
 	m_UIGeneratorTimer.start();
 	m_UserInterface.createFrame(m_RenderData);
@@ -333,20 +356,26 @@ void VkRenderer::cleanup()
 {
 	vkDeviceWaitIdle(m_RenderData.rendererVkbDevice.device);
 
+	m_GltfModel->cleanup(m_RenderData, m_GltfRenderData);
+	m_GltfModel.reset();
+
 	m_UserInterface.cleanup(m_RenderData);
 	Logger::log(1, "%s: Vulkan user inteface destroyed\n", __FUNCTION__);
 
-	VkRendererTexture::cleanup(m_RenderData, m_RenderData.rendererModelTexture);
 	SyncObjects::cleanup(m_RenderData);
 	CommandBuffer::cleanup(m_RenderData, m_RenderData.rendererCommandBuffer);
 	CommandPool::cleanup(m_RenderData);
 	VkRendererFramebuffer::cleanup(m_RenderData);
+	GltfPipeline::cleanup(m_RenderData, m_RenderData.rendererGltfPipeline);
 	VkRendererPipeline::cleanup(m_RenderData, m_RenderData.rendererPipeline);
 	VkRendererPipeline::cleanup(m_RenderData, m_RenderData.rendererChangedPipeline);
 	VkRendererPipelineLayout::cleanup(m_RenderData, m_RenderData.rendererPipelineLayout);
+	VkRendererPipelineLayout::cleanup(m_RenderData, m_RenderData.rendererGltfPipelineLayout);
 	VkRendererRenderPass::cleanup(m_RenderData);
 	VkRendererUniformBuffer::cleanup(m_RenderData);
 	VkVertexBuffer::cleanup(m_RenderData, m_RenderData.rendererVertexBufferData);
+	VkRendererTexture::cleanup(m_RenderData, m_RenderData.rendererModelTexture);
+
 
 	vkDestroyImageView(m_RenderData.rendererVkbDevice.device, m_RenderData.rendererDepthImageView, nullptr);
 	vmaDestroyImage(m_RenderData.rendererAllocator, m_RenderData.rendererDepthImage, m_RenderData.rendererDepthImageAlloc);
@@ -571,7 +600,7 @@ bool VkRenderer::createRenderPass()
 
 bool VkRenderer::createPipelineLayout()
 {
-	if(!VkRendererPipelineLayout::init(m_RenderData, m_RenderData.rendererPipelineLayout))
+	if(!VkRendererPipelineLayout::init(m_RenderData, m_RenderData.rendererModelTexture, m_RenderData.rendererPipelineLayout))
 	{
 		Logger::log(1, "%s error: could not init pipeline layout", __FUNCTION__);
 		return false;
@@ -581,19 +610,62 @@ bool VkRenderer::createPipelineLayout()
 
 bool VkRenderer::createPipelines()
 {
-	std::string vertexShaderFile = "C:\\dev\\game_animation\\shaders\\basic_vk.vert.spv";
-	std::string fragmentShaderFile = "C:\\dev\\game_animation\\shaders\\basic_vk.frag.spv";
-	if (!VkRendererPipeline::init(m_RenderData, m_RenderData.rendererPipelineLayout, m_RenderData.rendererPipeline, vertexShaderFile, fragmentShaderFile)) 
+	std::string vertexShaderFile = "C:\\dev\\the_sacred_geometry_revelead_it_to_me\\shaders\\basic_vk.vert.spv";
+	std::string fragmentShaderFile = "C:\\dev\\the_sacred_geometry_revelead_it_to_me\\shaders\\basic_vk.frag.spv";
+	if (!VkRendererPipeline::init(m_RenderData, m_RenderData.rendererPipelineLayout, m_RenderData.rendererPipeline, vertexShaderFile, fragmentShaderFile))
 	{
 		Logger::log(1, "%s error: could not init default pipeline\n", __FUNCTION__);
 		return false;
 	}
 	
-	vertexShaderFile = "C:\\dev\\game_animation\\shaders\\changed_vk.vert.spv";
-	fragmentShaderFile = "C:\\dev\\game_animation\\shaders\\changed_vk.frag.spv";
+	vertexShaderFile = "C:\\dev\\the_sacred_geometry_revelead_it_to_me\\shaders\\changed_vk.vert.spv";
+	fragmentShaderFile = "C:\\dev\\the_sacred_geometry_revelead_it_to_me\\shaders\\changed_vk.frag.spv";
 	if (!VkRendererPipeline::init(m_RenderData, m_RenderData.rendererPipelineLayout, m_RenderData.rendererChangedPipeline, vertexShaderFile, fragmentShaderFile))
 	{
 		Logger::log(1, "%s error: could not init alternate pipeline\n", __FUNCTION__);
+		return false;
+	}
+
+	return true;
+}
+
+
+bool VkRenderer::loadGltfModel()
+{
+	m_GltfModel = std::make_shared<GltfModel>();
+	std::string modelFilename = "C:\\dev\\the_sacred_geometry_revelead_it_to_me\\assets\\wooden_teapot\\scene.gltf";
+	std::string textureFilename = "C:\\dev\\the_sacred_geometry_revelead_it_to_me\\assets\\wooden_teapot\\textures\\DefaultMaterial_baseColor.jpeg";
+
+	if (!m_GltfModel->loadModel(m_RenderData, m_GltfRenderData, modelFilename, textureFilename))
+	{
+		Logger::log(1, "%s: loading gltf model '%s' failed \n", __FUNCTION__, modelFilename.c_str());
+		return false;
+	}
+
+	return true;
+}
+
+bool VkRenderer::createGltfPipelineLayout()
+{
+	if(!VkRendererPipelineLayout::init(m_RenderData, m_GltfRenderData.rendererGltfModelTexture, m_RenderData.rendererGltfPipelineLayout))
+	{
+		Logger::log(1, "%s: could not initgltf pipeline layout\n", __FUNCTION__);
+		return false;
+	}
+	
+	return true;
+}
+
+bool VkRenderer::createGltfPipeline()
+{
+	
+	std::string vertexShaderFile = "C:\\dev\\the_sacred_geometry_revelead_it_to_me\\shaders\\gltf.vert.spv";
+	std::string fragmentShaderFile = "C:\\dev\\the_sacred_geometry_revelead_it_to_me\\shaders\\gltf.frag.spv";
+	if (!GltfPipeline::init(m_RenderData, m_RenderData.rendererGltfPipelineLayout, m_RenderData.rendererGltfPipeline, 
+		VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST,
+		vertexShaderFile, fragmentShaderFile))
+	{
+		Logger::log(1, "%s error: could not init gltf pipeline\n", __FUNCTION__);
 		return false;
 	}
 

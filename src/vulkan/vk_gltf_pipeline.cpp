@@ -8,7 +8,7 @@
 #include "vk_shader.h"
 #include "logger.h"
 
-static bool init(VkRenderData& renderData,
+bool GltfPipeline::init(VkRenderData& renderData,
 	VkPipelineLayout& pipelineLayout, VkPipeline& pipeline,
 	VkPrimitiveTopology topology,
 	std::string vertexShaderFilename, std::string fragmentShaderFilename)
@@ -55,10 +55,10 @@ static bool init(VkRenderData& renderData,
 	positionAttribute.offset = 0;
 
 	VkVertexInputAttributeDescription normalAttribute{};
-	positionAttribute.binding = 1;
-	positionAttribute.location =10;
-	positionAttribute.format = VK_FORMAT_R32G32B32_SFLOAT;
-	positionAttribute.offset = 0;
+	normalAttribute.binding = 1;
+	normalAttribute.location = 1;
+	normalAttribute.format = VK_FORMAT_R32G32B32_SFLOAT;
+	normalAttribute.offset = 0;
 
 	VkVertexInputAttributeDescription uvAttribute{};
 	uvAttribute.binding = 2;
@@ -177,7 +177,7 @@ static bool init(VkRenderData& renderData,
 	return true;
 }
 
-static bool cleanup(VkRenderData& renderData, VkPipeline& pipeline)
+ void GltfPipeline::cleanup(VkRenderData& renderData, VkPipeline& pipeline)
 {
 	vkDestroyPipeline(renderData.rendererVkbDevice.device, pipeline, nullptr);
 }
