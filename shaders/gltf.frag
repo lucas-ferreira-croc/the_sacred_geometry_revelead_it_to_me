@@ -34,8 +34,8 @@ vec3 toLinearVec3(vec3 c) {
 }
 
 vec3 fogColor = vec3(0.25, 0.25, 0.25);
-const float minFogRadius = 5.0;
-const float maxFogRadius = 10.0;
+const float minFogRadius = 0.75;
+const float maxFogRadius = 1.5;
 
 void main()
 {

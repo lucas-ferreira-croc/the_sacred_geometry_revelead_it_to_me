@@ -16,6 +16,9 @@ public:
 	void mainLoop();
 	void cleanup();
 
+
+	GLFWwindow* get() { return m_Window; };
+
 private:
 	void handleWindowCloseEvents();
 	void handleKeyEvents(int key, int scancode, int action, int mods);

@@ -1,11 +1,16 @@
 #include <memory>
 #include <window.h>
 #include <logger.h>
-
+#include <game/game.h>
 
 int main(int argc, char* argv[])
 {
-	std::unique_ptr<Window> window = std::make_unique<Window>();
+	Game game;
+	game.init();
+	game.run();
+	game.cleanup();
+
+	/*std::unique_ptr<Window> window = std::make_unique<Window>();
 
 	if (!window->init(1280, 960, "saudade"))
 	{
@@ -14,7 +19,7 @@ int main(int argc, char* argv[])
 	}
 
 	window->mainLoop();
-	window->cleanup();
+	window->cleanup();*/
 
 	return 0;
 }

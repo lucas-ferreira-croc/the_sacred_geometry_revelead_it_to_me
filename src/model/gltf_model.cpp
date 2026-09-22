@@ -206,6 +206,7 @@ void GltfModel::draw(VkRenderData& renderData, VkGltfRenderData& gltfRenderData)
 				);
 
 			}
+
 			vkCmdBindIndexBuffer(
 				renderData.rendererCommandBuffer, 
 				primitiveData.rendererGltfIndexBufferData.rendererIndexBuffer,

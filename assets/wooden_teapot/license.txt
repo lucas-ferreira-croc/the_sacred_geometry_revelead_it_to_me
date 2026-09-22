@@ -1,0 +1,11 @@
+Model Information:
+* title:	Wooden Teapot
+* source:	https://sketchfab.com/3d-models/wooden-teapot-fb54ff06e10d4b97a0c2baf763071c9e
+* author:	drocclusion (https://sketchfab.com/drocclusion)
+
+Model License:
+* license type:	CC-BY-NC-4.0 (http://creativecommons.org/licenses/by-nc/4.0/)
+* requirements:	Author must be credited. No commercial use.
+
+If you use this 3D model in your project be sure to copy paste this credit wherever you share it:
+This work is based on "Wooden Teapot" (https://sketchfab.com/3d-models/wooden-teapot-fb54ff06e10d4b97a0c2baf763071c9e) by drocclusion (https://sketchfab.com/drocclusion) licensed under CC-BY-NC-4.0 (http://creativecommons.org/licenses/by-nc/4.0/)

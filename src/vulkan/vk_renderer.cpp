@@ -248,6 +248,7 @@ bool VkRenderer::draw() {
 	{
 		glm::mat4 rotationY = glm::rotate(glm::mat4(1.0f), -t, glm::vec3(0.0f, 1.0f, 0.0f));
 		glm::mat4 flipX = glm::rotate(glm::mat4(1.0f), glm::radians(180.0f), glm::vec3(1.0f, 0.0f, 0.0f));
+		glm::mat4 scale = glm::scale(glm::mat4(1.0f), glm::vec3(5.0f));
 		model = model /** rotationY */* flipX;
 	}
 	m_Matrices.viewMatrix = m_Camera.getViewMatrix(m_RenderData) * model;

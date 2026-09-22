@@ -80,7 +80,9 @@ add_executable(main ${SOURCES}
                "src/tools/timer.cpp"  
                "src/tools/camera.h" 
                "src/tools/camera.cpp"  
-               )
+
+               #ecs
+               "src/ecs/ecs.h" "src/ecs/ecs.cpp" "src/game/game.h" "src/game/game.cpp")
 
 compile_vk_shader("basic_vk.vert" main)
 compile_vk_shader("basic_vk.frag" main)
